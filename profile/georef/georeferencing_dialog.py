@@ -519,8 +519,10 @@ class GeoreferencingDialog(QMainWindow):
                     meta_1 = json.load(meta_file_1)
                 meta_0["gcps"] += meta_1["gcps"]
                 for item in meta_0["gcps"]:
-                    del item["input_x"]
-                    del item["input_z"]
+                    # do not delete as they need to be there in plan export
+                    # but they have to be 0 because half of them are not valid in kreuzprofil
+                    item["input_x"] = 0.0
+                    item["input_z"] = 0.0
                 out_path = f"{save_path_0_original.joinpath(f'{profileTargetName}.meta')}"
                 with open(out_path, "w") as outfile:
                     json.dump(meta_0, outfile)

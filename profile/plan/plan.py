@@ -6,8 +6,8 @@ from shutil import rmtree
 
 import processing
 from PyQt5.QtCore import Qt
-from osgeo import ogr, osr
-from qgis.PyQt.QtCore import QVariant, QMetaType
+from osgeo import ogr
+from qgis.PyQt.QtCore import QVariant
 from qgis.core import (
     QgsPointXY,
     QgsFeature,
@@ -328,33 +328,28 @@ class Plan:
 
         attributes = []
 
-        for key, value in gcpObj[0].items():
+        # needs to be this order for plan export
+        spalten_reihenfolge = [
+            "obj_uuid", "ptnr", "input_x", "input_z", "aar_x", "aar_z", "aar_z_org", "aar_distance", "aar_direction"
+        ]
+        for key in spalten_reihenfolge:
+            value = gcpObj[0][key]
 
-            if key != "aar_y":
+            if isinstance(value, str):
+                attributes.append(QgsField(key, QVariant.String))
 
-                if isinstance(value, str):
-                    attributes.append(QgsField(key, QVariant.String))
-
-                if isinstance(value, float):
-                    attributes.append(QgsField(key, QVariant.Double))
+            if isinstance(value, float):
+                attributes.append(QgsField(key, QVariant.Double))
 
         pr.addAttributes(attributes)
         gcpLayer.updateFields()
 
         # add features
         features = []
-        for item in gcpObj:
-
+        for obj in gcpObj:
             feat = QgsFeature()
-            feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(item["aar_x"], item["aar_z"])))
-
-            attributesFeat = []
-
-            for key, value in item.items():
-                if key != "aar_y":
-                    attributesFeat.append(value)
-
-            feat.setAttributes(attributesFeat)
+            feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(obj["aar_x"], obj["aar_z"])))
+            feat.setAttributes([obj[key] for key in spalten_reihenfolge])
             features.append(feat)
 
         pr.addFeatures(features)
@@ -436,7 +431,7 @@ class Plan:
         pr.truncate()  # Layer leeren
 
         # if inputLayer.name() == "gcp_points":
-        #     print("###selFeatures")
+        #     print("### DEBUG: selFeatures")
         #     self.print_feature_list(selFeatures)
         pr.addFeatures(selFeatures)
 
@@ -452,6 +447,8 @@ class Plan:
             feature["aar_direction"] = self.aar_direction
             if inputLayer.name() == "gcp_points":
                 feature["profil_nr"] = self.prof_nr
+            # else:
+            #     print("### DEBUG: inputLayer.name()", inputLayer.name(), "is not gcp_points")
             temporary_layer.updateFeature(feature)
 
         if tmp_data_path and tmp_data_path != "no_tmp_data":
@@ -463,7 +460,7 @@ class Plan:
                 print("ERROR restoring tmp data")
                 return
             # if inputLayer.name() == "gcp_points":
-            #     print("###tmp_data_feature_list")
+            #     print("### DEBUG: tmp_data_feature_list")
             #     self.print_feature_list(tmp_data_feature_list)
             pr.addFeatures(tmp_data_feature_list)
 
@@ -585,6 +582,8 @@ class Plan:
             layer.deleteAttribute(0)
             layer.updateFields()
             layer.commitChanges()
+        # else:
+        #     print("### DEBUG: layer_name", layer_name, "does not end with gcp_points")
 
         features_list = []
         for feature in layer.getFeatures():
@@ -598,15 +597,15 @@ class Plan:
             # Print feature ID
             print(f"Feature ID: {feature.id()}")
 
+            # Print feature geometry
+            geom = feature.geometry()
+            print(f"Geometry: {geom.asWkt()}")
+
             # Print feature attributes
             attributes = feature.attributes()
             print("Attributes:")
             for i, attr in enumerate(attributes):
                 print(f"  {i}: {attr}")
-
-            # Print feature geometry
-            geom = feature.geometry()
-            print(f"Geometry: {geom.asWkt()}")
 
             # Print a separator for better readability
             print("---")
