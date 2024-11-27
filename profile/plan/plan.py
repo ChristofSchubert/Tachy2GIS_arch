@@ -436,7 +436,7 @@ class Plan:
         pr.addFeatures(selFeatures)
 
         if inputLayer.name() == "gcp_points":
-            pr.addAttributes([QgsField("profil_nr", QVariant.String, len=20)])
+            pr.addAttributes([QgsField("prof_nr", QVariant.String, len=20)])
         else:
             pr.addAttributes([QgsField("aar_direction", QVariant.String, len=20)])
 
@@ -446,7 +446,7 @@ class Plan:
         for feature in temporary_layer.getFeatures():
             feature["aar_direction"] = self.aar_direction
             if inputLayer.name() == "gcp_points":
-                feature["profil_nr"] = self.prof_nr
+                feature["prof_nr"] = self.prof_nr
             # else:
             #     print("### DEBUG: inputLayer.name()", inputLayer.name(), "is not gcp_points")
             temporary_layer.updateFeature(feature)
@@ -504,7 +504,7 @@ class Plan:
 
         layer.startEditing()
 
-        # gcp table has profil_nr and E_* tables have prof_nr
+        # (OLD gcp table has profil_nr) E_* tables have prof_nr
         filter_expression = f"profil_nr = '{profile_number}' OR prof_nr = '{profile_number}'"
         request = QgsFeatureRequest().setFilterExpression(filter_expression)
         features = layer.getFeatures(request)
