@@ -71,7 +71,7 @@ class Digitize:
                     self.dataStoreDigitize, self.rotationCoords, self.__iface, self.aar_direction
                 )
                 self.dataStoreDigitize.triggerAarTransformationParams(self.aar_direction)
-                self.digitizeDialog.showDigitizeDialog(refData)
+                self.digitizeDialog.showDigitizeDialog(refData, self.dataStoreDigitize.getProfileNumber())
 
     ## \brief get meta data to profile
     #

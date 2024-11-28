@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 
 from PyQt5.QtCore import pyqtSlot
 from qgis.PyQt.QtGui import QIcon
@@ -191,14 +190,20 @@ class DigitizeDialog(QMainWindow):
     #
     # \param refData
 
-    def showDigitizeDialog(self, refData):
+    def showDigitizeDialog(self, refData, filter_by_profile_nr=None):
         self.restore(refData)
 
         bufferGeometry = self.rotationCoords.profileBuffer(1, self.aar_direction)
 
-        self.toolDigiPoint.getFeaturesFromEingabelayer(bufferGeometry, "profile", self.aar_direction)
-        self.toolDigiLine.getFeaturesFromEingabelayer(bufferGeometry, "profile", self.aar_direction)
-        self.toolDigiPolygon.getFeaturesFromEingabelayer(bufferGeometry, "profile", self.aar_direction)
+        self.toolDigiPoint.getFeaturesFromEingabelayer(
+            bufferGeometry, "profile", self.aar_direction, filter_by_profile_nr
+        )
+        self.toolDigiLine.getFeaturesFromEingabelayer(
+            bufferGeometry, "profile", self.aar_direction, filter_by_profile_nr
+        )
+        self.toolDigiPolygon.getFeaturesFromEingabelayer(
+            bufferGeometry, "profile", self.aar_direction, filter_by_profile_nr
+        )
 
     @pyqtSlot()
     def collect_points_from_digi_layers(self):
