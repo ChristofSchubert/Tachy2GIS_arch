@@ -138,7 +138,7 @@ class MapToolDigiPoint(PointMapTool, MapToolMixin):
         self.digiPointLayer.updateExtents()
         self.digiPointLayer.endEditCommand()
 
-    def getFeaturesFromEingabelayer(self, bufferGeometry, geoType, aar_direction):
+    def getFeaturesFromEingabelayer(self, bufferGeometry, geoType, aar_direction, no_buffer_profile_nr=None):
         self.digiPointLayer.startEditing()
         pr = self.digiPointLayer.dataProvider()
 
@@ -149,7 +149,10 @@ class MapToolDigiPoint(PointMapTool, MapToolMixin):
 
         selFeatures = []
         for feature in featsSel:
-            if not feature.geometry().within(bufferGeometry):
+            if no_buffer_profile_nr:
+                if feature["prof_nr"] != no_buffer_profile_nr:
+                    continue
+            elif not feature.geometry().within(bufferGeometry):
                 continue
 
             if geoType == "tachy" and feature["geo_quelle"] != "profile_object":
