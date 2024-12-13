@@ -1,5 +1,5 @@
 import gc
-from os import path as os_path
+from os import path as os_path, environ
 
 from PyQt5 import sip
 from PyQt5.QtCore import QCoreApplication
@@ -187,10 +187,12 @@ class PluginInterface:
                 self.t2g_arch_instance = T2gArch(self.iface)
                 self.t2g_arch_instance.initGui()
             if self.t2g_arch_instance.startAndStopPlugin(start=True):
+                self.set_vsi_cached(True)
                 self.activateActions()
             else:
                 self.onActionStartPlugin(False)
         else:
+            self.set_vsi_cached(False)
             if not self.t2g_arch_instance:
                 print("PLUGIN DELETE not needed")
             else:
@@ -253,3 +255,23 @@ class PluginInterface:
                 # if you see "NEEDS CLEANUP" and 'PLUGIN DELETE SUCCESS' in stdout
                 # then this was successful, and you should add deleteLater() to your normal code
                 widget.deleteLater()
+
+    def set_vsi_cached(self, active=True):
+        """
+        Set or unset env var SQLITE_USE_OGR_VFS [1] for file caching [2].
+        This is used for opening and editing geopackage-based projects directly
+            on windows network shared folders and accepting possible database corruption.
+        Geopackage is based on SQLite and depends on file locking [3].
+        [1] CTRL-F SQLITE_USE_OGR_VFS https://gdal.org/en/latest/drivers/vector/gpkg.html
+        [2] https://gdal.org/en/latest/user/virtual_file_systems.html#vsicached-file-caching
+        [3] https://www.sqlite.org/whentouse.html#situations_where_a_client_server_rdbms_may_work_better
+        """
+        if active:
+            print(
+                "set SQLITE_USE_OGR_VFS (This is used for opening and editing geopackage-based projects directly"
+                "on windows network shared folders and accepting possible database corruption.)"
+            )
+            environ["SQLITE_USE_OGR_VFS"] = "1"
+        elif environ.get("SQLITE_USE_OGR_VFS", False):
+            print("unset SQLITE_USE_OGR_VFS")
+            del environ["SQLITE_USE_OGR_VFS"]
