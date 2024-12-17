@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 
-## @brief With the TransformationDialogParambar class a bar based on QWidget is realized
-#
-# Inherits from QWidget
-#
 # @author Mario Uhlig, VisDat geodatentechnologie GmbH, mario.uhlig@visdat.de
 # @date 2022-04-12
 
@@ -11,10 +7,6 @@ from ..publisher import Publisher
 
 
 class DataStorePlan:
-
-    ## The constructor.
-    #
-
     def __init__(self):
 
         print("init_dataStore_plan")

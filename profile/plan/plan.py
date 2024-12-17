@@ -75,6 +75,12 @@ class Plan:
 
     def __startPlanCreation(self):
 
+        if not self.layers_not_in_edit_mode(["E_Point", "E_Line", "E_Polygon", "Messpunkte"]):
+            self.__iface.messageBar().pushMessage(
+                "Error", "Bitte den Editiermodus der Eingabelayer beenden.", level=1, duration=3
+            )
+            return
+
         planData = self.__getSelectedValues()
 
         baseFilePath = planData["profilePath"][:-4]
@@ -95,7 +101,9 @@ class Plan:
             self.__exportPlanLayers(refData, baseFilePath)
 
             self.__iface.messageBar().pushMessage(
-                "Hinweis", "Die Daten zum Plan wurden im Geopackage des Projektes in den (unregistrierten) Tabellen profildata_* abgelegt", level=3, duration=5
+                "Hinweis",
+                "Die Daten zum Plan wurden im Geopackage des Projektes in den (unregistrierten) Tabellen profildata_* abgelegt",
+                level=3, duration=5
             )
 
             # self.layout.startLayout(planData)
@@ -122,9 +130,9 @@ class Plan:
                 data = json.load(json_file)
 
                 if (
-                    data["aar_direction"] == "horizontal"
-                    or data["aar_direction"] == "absolute height"
-                    or data["aar_direction"] == "original"
+                        data["aar_direction"] == "horizontal"
+                        or data["aar_direction"] == "absolute height"
+                        or data["aar_direction"] == "original"
                 ):
 
                     self.dataStorePlan.addProfileNumber(data["profilnummer"])
@@ -303,7 +311,6 @@ class Plan:
                     (profile_number and feature["prof_nr"] == profile_number) or
                     (not profile_number and feature.geometry().within(bufferGeometry))
             ):
-
                 rotFeature = QgsFeature(polygonLayer.fields())
 
                 rotateGeom = self.rotationCoords.rotatePolygonFeatureFromOrg(feature, self.aar_direction)
@@ -609,3 +616,18 @@ class Plan:
 
             # Print a separator for better readability
             print("---")
+
+    def layers_not_in_edit_mode(self, list_of_layer_names: list[str]):
+        project = QgsProject.instance()
+
+        for layer_name in list_of_layer_names:
+            layers = project.mapLayersByName(layer_name)
+            if not layers:
+                print(f"Layer '{layer_name}' not found in the project.")
+                return False
+
+            if any([layer.isEditable() for layer in layers]):
+                print(f"Layer '{layer_name}' is in edit mode.")
+                return False
+
+        return True
