@@ -523,6 +523,7 @@ class GeoreferencingDialog(QMainWindow):
                     # but they have to be 0 because half of them are not valid in kreuzprofil
                     item["input_x"] = 0.0
                     item["input_z"] = 0.0
+                meta_0["profilnummer"] += "_" + meta_1["profilnummer"]
                 out_path = f"{save_path_0_original.joinpath(f'{profileTargetName}.meta')}"
                 with open(out_path, "w") as outfile:
                     json.dump(meta_0, outfile)
