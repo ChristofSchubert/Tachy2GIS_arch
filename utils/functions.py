@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import csv
+import ctypes
 import datetime
 import os
 import os.path
 import re
 import shutil
 import time
+from ctypes import wintypes
 
 from qgis.PyQt.QtCore import Qt, QUrl, pyqtSignal
 from qgis.PyQt.QtGui import QColor
@@ -27,6 +29,79 @@ from qgis.core import (
 )
 from qgis.gui import QgsMapToolEmitPoint, QgsRubberBand, QgsVertexMarker
 from qgis.utils import iface
+
+
+def is_network_path(path):
+    # Define the function prototype
+    GetDriveTypeW = ctypes.windll.kernel32.GetDriveTypeW
+    GetDriveTypeW.argtypes = [wintypes.LPCWSTR]
+    GetDriveTypeW.restype = wintypes.UINT
+    # Convert to absolute path
+    full_path = os.path.abspath(path)
+    # For UNC paths, use the server/share root
+    if full_path.startswith('\\\\'):
+        # UNC root would look like \\server\share
+        # Typically extracting the first two path components after '\\'
+        parts = full_path.strip('\\').split('\\')
+        if len(parts) >= 2:
+            unc_root = '\\\\' + parts[0] + '\\' + parts[1]
+            drive_type = GetDriveTypeW(unc_root)
+        else:
+            # If we can't properly parse a UNC root, treat it carefully:
+            return False
+    else:
+        # For normal paths (which might be mapped drives),
+        # extract the drive letter and append '\\'
+        drive, _ = os.path.splitdrive(full_path)
+        if not drive:
+            # No drive means it's relative or otherwise ambiguous
+            return False
+        # Ensure drive ends with a backslash
+        drive_root = drive + '\\'
+        drive_type = GetDriveTypeW(drive_root)
+
+    return drive_type == 4  # DRIVE_REMOTE
+
+
+def is_vsi_cached():
+    return os.environ.get("SQLITE_USE_OGR_VFS", False)
+
+
+def set_vsi_cached(activate: bool):
+    """
+    Set or unset env var SQLITE_USE_OGR_VFS [1] for file caching [2].
+    This is used for opening and editing geopackage-based projects directly
+        on windows network shared folders and accepting possible database corruption.
+    Geopackage is based on SQLite and depends on file locking [3].
+    [1] CTRL-F SQLITE_USE_OGR_VFS https://gdal.org/en/latest/drivers/vector/gpkg.html
+    [2] https://gdal.org/en/latest/user/virtual_file_systems.html#vsicached-file-caching
+    [3] https://www.sqlite.org/whentouse.html#situations_where_a_client_server_rdbms_may_work_better
+    """
+    if activate:
+        print(
+            "set SQLITE_USE_OGR_VFS (This is used for opening and editing geopackage-based projects directly"
+            " on windows network shared folders and accepting possible database corruption.)"
+        )
+        os.environ["SQLITE_USE_OGR_VFS"] = "1"
+    elif is_vsi_cached():
+        print("unset SQLITE_USE_OGR_VFS")
+        del os.environ["SQLITE_USE_OGR_VFS"]
+
+
+def layers_not_in_edit_mode(list_of_layer_names: list[str]):
+    project = QgsProject.instance()
+
+    for layer_name in list_of_layer_names:
+        layers = project.mapLayersByName(layer_name)
+        if not layers:
+            print(f"Layer '{layer_name}' not found in the project.")
+            return False
+
+        if any([layer.isEditable() for layer in layers]):
+            print(f"Layer '{layer_name}' is in edit mode.")
+            return False
+
+    return True
 
 
 def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):

@@ -3,9 +3,11 @@ import json
 import os
 
 from qgis.core import QgsProject, QgsVectorLayer, QgsLayerTreeGroup, QgsLayerTreeLayer
+from qgis.utils import iface
 
 from .data_store_digitize import DataStoreDigitize
 from .digitize_dialog import DigitizeDialog
+from ...utils.functions import layers_not_in_edit_mode
 
 
 ## @brief The class is used to implement functionalities for work with profiles within the dock widget of the Tachy2GIS_arch plugin
@@ -31,9 +33,6 @@ class Digitize:
 
         self.aar_direction = None
 
-    ## @brief Initializes the functionality for profile modul
-    #
-
     def setup(self):
 
         # set datatype filter to profileFotosComboGeoref
@@ -45,10 +44,13 @@ class Digitize:
 
         self.__dockwidget.startDigitizeBtn.clicked.connect(self.__startDigitizeDialog)
 
-    ## \brief Start digitize dialog
-    #
-    #
     def __startDigitizeDialog(self):
+
+        if not layers_not_in_edit_mode(["E_Point", "E_Line", "E_Polygon", "Messpunkte"]):
+            iface.messageBar().pushMessage(
+                "Error", "Bitte den Editiermodus der Eingabelayer beenden.", level=1, duration=3
+            )
+            return
 
         refData = self.__getSelectedValues()
 

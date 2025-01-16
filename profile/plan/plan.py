@@ -24,6 +24,7 @@ from qgis.core import (
 
 from .data_store_plan import DataStorePlan
 from ..rotation_coords import RotationCoords
+from ...utils.functions import layers_not_in_edit_mode, set_vsi_cached, is_vsi_cached
 
 
 ## @brief The class is used to implement functionalities for work with profile-plans within the dock widget of the Tachy2GIS_arch plugin
@@ -75,7 +76,7 @@ class Plan:
 
     def __startPlanCreation(self):
 
-        if not self.layers_not_in_edit_mode(["E_Point", "E_Line", "E_Polygon", "Messpunkte"]):
+        if not layers_not_in_edit_mode(["E_Point", "E_Line", "E_Polygon", "Messpunkte"]):
             self.__iface.messageBar().pushMessage(
                 "Error", "Bitte den Editiermodus der Eingabelayer beenden.", level=1, duration=3
             )
@@ -388,6 +389,11 @@ class Plan:
         return gcpLayer, features
 
     def __writeLayer(self, inputLayer, selFeatures, baseFilePath, layerType):
+        was_vsi_cached = False
+        if is_vsi_cached():
+            was_vsi_cached = True
+            set_vsi_cached(False)
+
         layer_name = f"profildata_{inputLayer.name()}"
         tmp_data_path = "no_tmp_data"
 
@@ -503,10 +509,16 @@ class Plan:
 
         QgsProject.instance().removeMapLayer(temporary_layer.id())
 
+        if was_vsi_cached:
+            set_vsi_cached(True)
+
     def __delete_profile_number(self, gpkg_path, layer_name, profile_number):
         layer = QgsVectorLayer(f"{gpkg_path}|layername={layer_name}", layer_name, "ogr")
         if not layer.isValid():
-            print(f"__delete_profile_number({gpkg_path}, {layer_name}, {profile_number}) Layer failed to load!")
+            print(
+                f"__delete_profile_number({gpkg_path}, {layer_name}, {profile_number}) Layer failed to load! "
+                f"Fehlerdetails: {layer.dataProvider().lastError()}"
+            )
             return
 
         layer.startEditing()
@@ -527,6 +539,7 @@ class Plan:
             print(f"__delete_profile_number({gpkg_path}, {layer_name}, {profile_number}) Failed to delete features.")
 
         layer.commitChanges()
+        layer = None
 
     def layer_from_gpkg_to_gpkg(self, layer_name, from_gpkg, to_gpkg=None):
         tmp_dir_prefix = "plan_data_temp_gpkg_"
@@ -573,14 +586,14 @@ class Plan:
 
         print(f"Layer {layer_name} has been copied to {to_gpkg_path}")
 
+        from_layer = None
         return to_gpkg_path
 
     def layer_from_gpkg_to_feature_list(self, layer_name, from_gpkg):
-
         layer = QgsVectorLayer(f"{from_gpkg}|layername={layer_name}", layer_name, "ogr")
 
         if not layer.isValid():
-            print("layer_from_gpkg_to_feature_list() Layer failed to load!")
+            print(f"layer_from_gpkg_to_feature_list() Layer failed to load! Fehlerdetails: {layer.dataProvider().lastError()}")
             return None
 
         if layer_name.endswith("gcp_points"):
@@ -596,6 +609,7 @@ class Plan:
         for feature in layer.getFeatures():
             features_list.append(feature)
 
+        layer = None
         return features_list
 
     def print_feature_list(self, features_list):
@@ -616,18 +630,3 @@ class Plan:
 
             # Print a separator for better readability
             print("---")
-
-    def layers_not_in_edit_mode(self, list_of_layer_names: list[str]):
-        project = QgsProject.instance()
-
-        for layer_name in list_of_layer_names:
-            layers = project.mapLayersByName(layer_name)
-            if not layers:
-                print(f"Layer '{layer_name}' not found in the project.")
-                return False
-
-            if any([layer.isEditable() for layer in layers]):
-                print(f"Layer '{layer_name}' is in edit mode.")
-                return False
-
-        return True

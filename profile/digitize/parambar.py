@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 
 from qgis.PyQt.QtCore import Qt, QRect
 from qgis.PyQt.QtGui import QIcon, QPainter, QColor
@@ -18,9 +17,11 @@ from qgis.PyQt.QtWidgets import (
     QActionGroup,
 )
 from qgis.core import QgsApplication
+from qgis.utils import iface
 
 from ..publisher import Publisher
 from ...Icons import ICON_PATHS
+from ...utils.functions import layers_not_in_edit_mode
 
 
 ## @brief With the TransformationDialogParambar class a bar based on QWidget is realized
@@ -145,6 +146,12 @@ class Parambar(QWidget):
         self.takeLayerButton.triggered.connect(self.takeLayerObjects)
 
     def takeLayerObjects(self):
+
+        if not layers_not_in_edit_mode(["E_Point", "E_Line", "E_Polygon", "Messpunkte"]):
+            iface.messageBar().pushMessage(
+                "Error", "Bitte den Editiermodus der Eingabelayer beenden.", level=1, duration=3
+            )
+            return
         try:
             # layer_id = self.activeLayerCombo.currentData()
             # if self.refData['pointLayer'].id() == layer_id:
@@ -161,7 +168,6 @@ class Parambar(QWidget):
             infoText = f"Achtung! Die Daten wurden nicht in die Eingabelayer geschrieben. ({type(e)}: {e})"
             titleText = "Fehler"
 
-        # Info message
         self.__openInfoMessageBox(infoText, titleText)
 
     def getOriginalObjects(self):
